@@ -1299,7 +1299,7 @@ int __cdecl PacketUnknownFunctionHandler(int a1, int a2, int a3)
 }
 
 DWORD packet_table_offset;
-DWORD push_packet_table = 0x1AC8F8;
+DWORD push_packet_table;
 void __stdcall clear_packet_table_hook(NetworkPacket *old_packet_table) {
 	CustomNetwork::ClearPacketTable();
 	NetworkPacket* packet_table = CustomNetwork::GetPacketTable();
@@ -1398,6 +1398,7 @@ void H2MOD::ApplyHooks() {
 		VirtualProtect(build_gui_list_method, 4, PAGE_EXECUTE_READWRITE, &dwBack);
 		// Replace the games packet table with our own one and register our packets
 		packet_table_offset = 0x51C464;
+		push_packet_table = 0x1AC8F8;
 		BYTE packet_count = CustomNetwork::packet_count;
 		DetourClassFunc((BYTE*)this->GetBase() + 0x1E81C5, (BYTE*)clear_packet_table_hook, 5);
 		WriteBytesASM(this->GetBase() + 0x1E825E, &packet_count, 1);
@@ -1450,6 +1451,7 @@ void H2MOD::ApplyHooks() {
 
 		// Replace the games packet table with our own one and register our packets
 		packet_table_offset = 0x520B84;
+		push_packet_table = 0x1ACAC6;
 		BYTE packet_count = CustomNetwork::packet_count;
 		DetourClassFunc((BYTE*)this->GetBase() + 0x1AC188, (BYTE*)clear_packet_table_hook, 5);
 		WriteBytesASM(this->GetBase() + 0x1AC221, &packet_count, 1);
