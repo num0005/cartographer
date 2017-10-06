@@ -15,6 +15,7 @@
 #include "Globals.h"
 #include "H2OnscreenDebugLog.h"
 #include "GSUtils.h"
+#include "CustomNetworking.h"
 
 H2MOD *h2mod = new H2MOD();
 GunGame *gg = new GunGame();
@@ -1270,6 +1271,38 @@ int __cdecl buildGuiList(int a1, int a2, int a3) {
 	return build_gui_list_method(a1, a2, a3);
 }
 
+typedef NetworkPacket *(__cdecl *register_packet_group)(NetworkPacket *packet_table);
+register_packet_group register_test_packet;
+
+NetworkPacket* __cdecl register_test_packet_hook(NetworkPacket *packet_table) {
+	return register_test_packet(packet_table);
+}
+
+PacketGenerator GameLeaveSessionPacketGenerator;
+bool __cdecl leaveSessionPacketGenerator(int a1, int size, void *data)
+{
+	TRACE("leaveSessionPacketGenerator");
+	return GameLeaveSessionPacketGenerator(a1, size, data);
+}
+
+PacketHandler GameleaveSessionPacketHandler;
+bool __cdecl leaveSessionPacketHandler(int a1, int a2, int a3)
+{
+	TRACE("leaveSessionPacketHandler");
+	return GameleaveSessionPacketHandler(a1, a2, a3);
+}
+
+DWORD packet_table_offset;
+void __stdcall clear_packet_table_hook(NetworkPacket *old_packet_table) {
+	CustomNetwork::ClearPacketTable();
+	NetworkPacket* packet_table = CustomNetwork::GetPacketTable();
+	NetworkPacket** packet_table_ptr = &packet_table;
+	WriteBytesASM(h2mod->GetBase() + packet_table_offset, packet_table_ptr, sizeof(packet_table_ptr));
+
+	// test packets
+	CustomNetwork::Register_Packet(packet_table, CustomNetwork::leave_session_new_test, "leave-session", 8, 8, leaveSessionPacketGenerator, leaveSessionPacketHandler);
+}
+
 void H2MOD::ApplyHooks() {
 	/* Should store all offsets in a central location and swap the variables based on h2server/halo2.exe*/
 	/* We also need added checks to see if someone is the host or not, if they're not they don't need any of this handling. */
@@ -1356,6 +1389,20 @@ void H2MOD::ApplyHooks() {
 		build_gui_list_method = (build_gui_list)DetourFunc((BYTE*)this->GetBase() + 0x20D1FD, (BYTE*)buildGuiList, 8);
 		VirtualProtect(build_gui_list_method, 4, PAGE_EXECUTE_READWRITE, &dwBack);
 
+		// Replace the games packet table with our own one and register our packets
+		packet_table_offset = 0x51C464;
+		BYTE packet_count = CustomNetwork::packet_count;
+		DetourClassFunc((BYTE*)this->GetBase() + 0x1E81C5, (BYTE*)clear_packet_table_hook, 5);
+		WriteBytesASM(this->GetBase() + 0x1E825E, &packet_count, 1);
+
+		// packet test
+		GameLeaveSessionPacketGenerator = reinterpret_cast<PacketGenerator>(this->GetBase() + 0x1F0F14);
+		GameleaveSessionPacketHandler = reinterpret_cast<PacketHandler>(this->GetBase() + 0x1F0F2A);
+
+		auto new_packet_id = CustomNetwork::leave_session_new_test;
+		WriteBytesASM(this->GetBase() + 0x1CA2A3, &new_packet_id, 1);
+		WriteBytesASM(this->GetBase() + 0x1CA2C1, &new_packet_id, 1);
+
 		// Patch out the code that displays the "Invalid Checkpoint" error
 		// Start
 		NopFill(this->GetBase() + 0x30857, 0x41);
@@ -1392,7 +1439,17 @@ void H2MOD::ApplyHooks() {
 
 
 		pplayer_death = (player_death)DetourFunc((BYTE*)this->GetBase() + 0x152ED4, (BYTE*)OnPlayerDeath, 9);
-		VirtualProtect(pplayer_death, 4, PAGE_EXECUTE_READWRITE, &dwBack);//
+		VirtualProtect(pplayer_death, 4, PAGE_EXECUTE_READWRITE, &dwBack);
+
+		// Replace the games packet table with our own one and register our packets
+		packet_table_offset = 0x520B84;
+		BYTE packet_count = CustomNetwork::packet_count;
+		DetourClassFunc((BYTE*)this->GetBase() + 0x1AC188, (BYTE*)clear_packet_table_hook, 5);
+		WriteBytesASM(this->GetBase() + 0x1AC221, &packet_count, 1);
+
+		// packet test
+		GameLeaveSessionPacketGenerator = reinterpret_cast<PacketGenerator>(this->GetBase() + 0x1D18CD);
+		GameleaveSessionPacketHandler = reinterpret_cast<PacketHandler>(this->GetBase() + 0x1D18E3);
 	}
 #pragma endregion
 }
