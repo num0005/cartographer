@@ -1292,15 +1292,23 @@ bool __cdecl leaveSessionPacketHandler(int a1, int a2, int a3)
 	return GameleaveSessionPacketHandler(a1, a2, a3);
 }
 
+int __cdecl PacketUnknownFunctionHandler(int a1, int a2, int a3)
+{
+	TRACE("PacketUnknownFunctionHandler");
+	return 0;
+}
+
 DWORD packet_table_offset;
+DWORD push_packet_table = 0x1AC8F8;
 void __stdcall clear_packet_table_hook(NetworkPacket *old_packet_table) {
 	CustomNetwork::ClearPacketTable();
 	NetworkPacket* packet_table = CustomNetwork::GetPacketTable();
 	NetworkPacket** packet_table_ptr = &packet_table;
 	WriteBytesASM(h2mod->GetBase() + packet_table_offset, packet_table_ptr, sizeof(packet_table_ptr));
+	WriteBytesASM(h2mod->GetBase() + push_packet_table, packet_table_ptr, sizeof(packet_table_ptr));
 
 	// test packets
-	CustomNetwork::Register_Packet(packet_table, CustomNetwork::leave_session_new_test, "leave-session", 8, 8, leaveSessionPacketGenerator, leaveSessionPacketHandler);
+	CustomNetwork::Register_Packet(packet_table, CustomNetwork::leave_session_new_test, "leave-session", 8, 8, leaveSessionPacketGenerator, leaveSessionPacketHandler, PacketUnknownFunctionHandler);
 }
 
 void H2MOD::ApplyHooks() {
@@ -1388,7 +1396,6 @@ void H2MOD::ApplyHooks() {
 
 		build_gui_list_method = (build_gui_list)DetourFunc((BYTE*)this->GetBase() + 0x20D1FD, (BYTE*)buildGuiList, 8);
 		VirtualProtect(build_gui_list_method, 4, PAGE_EXECUTE_READWRITE, &dwBack);
-
 		// Replace the games packet table with our own one and register our packets
 		packet_table_offset = 0x51C464;
 		BYTE packet_count = CustomNetwork::packet_count;
