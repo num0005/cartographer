@@ -7,6 +7,7 @@
 #include "H2Startup.h"
 #include "H2OnscreenDebugLog.h"
 #include "GSRunLoop.h"
+#include <string>
 
 using namespace std;
 
@@ -202,6 +203,14 @@ void trace_game_narrow(LPSTR message, ...)
 	LeaveCriticalSection(&d_lock);
 }
 #endif
+
+FILE* OpenLog(std::wstring name)
+{
+	if (getPlayerNumber() > 1)
+		name += std::to_wstring(getPlayerNumber());
+	name += L".log";
+	return _wfopen(name.c_str(), L"wt");
+}
 
 void InitInstance()
 {
@@ -410,7 +419,7 @@ void InitInstance()
 
 		if (g_debug)
 		{
-			if (logfile = _wfopen(L"xlive_trace.log", L"wt"))
+			if (logfile = OpenLog(L"xlive_trace"))
 			{
 				TRACE("Log started (xLiveLess 2.0a4)\n");
 				TRACE("g_port: %i", g_port);
@@ -420,10 +429,10 @@ void InitInstance()
 
 			}
 
-			if (loggame = _wfopen(L"h2mod.log", L"wt"))
+			if (loggame = OpenLog(L"h2mod"))
 				TRACE_GAME("Log started (H2MOD 0.1a1)\n");
 
-			if (loggamen = _wfopen(L"h2network.log", L"wt"))
+			if (loggamen = OpenLog(L"h2network.log"))
 				TRACE_GAME_NETWORK("Log started (H2MOD - Network 0.1a1)\n");
 		}
 

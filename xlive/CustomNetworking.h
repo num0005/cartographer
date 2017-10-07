@@ -85,4 +85,5 @@ public:
 		);
 	static NetworkPacket *GetPacketTable();
 	static void ClearPacketTable();
+	static void SendPacket(packet_type id, void *data, int size, int packet_id = 0);
 };

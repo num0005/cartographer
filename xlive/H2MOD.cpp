@@ -1289,15 +1289,10 @@ bool __cdecl leaveSessionPacketGenerator(void *packet, int size, void *data)
 PacketHandler GameleaveSessionPacketHandler;
 bool __cdecl leaveSessionPacketHandler(void *packet, int size, void *data)
 {
-	typedef void *(__cdecl *get_packet)(int id);
-	get_packet get_packet_impl = reinterpret_cast<get_packet>(0x1AC81D + h2mod->GetBase());
-	typedef int (__thiscall *send_packet)(void *packet, unsigned int type, unsigned int size, void *data_obj);
-	send_packet send_packet_impl = reinterpret_cast<send_packet>(0x1BB3E7 + h2mod->GetBase());
 	TRACE("leaveSessionPacketHandler");
 	bool return_value = GameleaveSessionPacketHandler(packet, size, data);
-	void *new_packet = get_packet_impl(0);
 	BYTE dummy_data[10];
-	send_packet_impl(new_packet, CustomNetwork::this_is_a_test, 0, dummy_data);//sizeof(dummy_data), dummy_data);
+	CustomNetwork::SendPacket(CustomNetwork::this_is_a_test, dummy_data, 0);
 	return return_value;
 }
 
