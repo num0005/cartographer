@@ -1,6 +1,6 @@
 #pragma once
-typedef bool(__cdecl *PacketGenerator)(int a1, int size, void *data);
-typedef bool(__cdecl *PacketHandler)(int a1, int a2, int a3);
+typedef bool(__cdecl *PacketGenerator)(void *packet, int size, void *data);
+typedef bool(__cdecl *PacketHandler)(void *packet, int size, void *data);
 typedef int(__cdecl *PacketUnknownFunction)(int a1, int a2, int a3);
 struct NetworkPacket
 {
@@ -13,7 +13,6 @@ struct NetworkPacket
 	PacketHandler handle_packet;
 	PacketUnknownFunction unk2;
 };
-
 static_assert(sizeof(NetworkPacket) == 0x20, "Bad NetworkPacket size.");
 
 class CustomNetwork {
@@ -70,6 +69,7 @@ public:
 		text_chat,
 		test,
 		leave_session_new_test,
+		this_is_a_test,
 		packet_count
 	};
 	static_assert(packet_count <= 0xFF, "Too many packets registered");

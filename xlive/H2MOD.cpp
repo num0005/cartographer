@@ -1279,17 +1279,26 @@ NetworkPacket* __cdecl register_test_packet_hook(NetworkPacket *packet_table) {
 }
 
 PacketGenerator GameLeaveSessionPacketGenerator;
-bool __cdecl leaveSessionPacketGenerator(int a1, int size, void *data)
+bool __cdecl leaveSessionPacketGenerator(void *packet, int size, void *data)
 {
 	TRACE("leaveSessionPacketGenerator");
-	return GameLeaveSessionPacketGenerator(a1, size, data);
+	bool return_value = GameLeaveSessionPacketGenerator(packet, size, data);
+	return return_value;
 }
 
 PacketHandler GameleaveSessionPacketHandler;
-bool __cdecl leaveSessionPacketHandler(int a1, int a2, int a3)
+bool __cdecl leaveSessionPacketHandler(void *packet, int size, void *data)
 {
+	typedef void *(__cdecl *get_packet)(int id);
+	get_packet get_packet_impl = reinterpret_cast<get_packet>(0x1AC81D + h2mod->GetBase());
+	typedef int (__thiscall *send_packet)(void *packet, unsigned int type, unsigned int size, void *data_obj);
+	send_packet send_packet_impl = reinterpret_cast<send_packet>(0x1BB3E7 + h2mod->GetBase());
 	TRACE("leaveSessionPacketHandler");
-	return GameleaveSessionPacketHandler(a1, a2, a3);
+	bool return_value = GameleaveSessionPacketHandler(packet, size, data);
+	void *new_packet = get_packet_impl(0);
+	BYTE dummy_data[10];
+	send_packet_impl(new_packet, CustomNetwork::this_is_a_test, 0, dummy_data);//sizeof(dummy_data), dummy_data);
+	return return_value;
 }
 
 int __cdecl PacketUnknownFunctionHandler(int a1, int a2, int a3)
@@ -1297,6 +1306,25 @@ int __cdecl PacketUnknownFunctionHandler(int a1, int a2, int a3)
 	TRACE("PacketUnknownFunctionHandler");
 	return 0;
 }
+
+bool __cdecl TestPacketGenerator(void *packet, int size, void *data)
+{
+	TRACE("TestPacketGenerator");
+	return 1;
+}
+
+bool __cdecl TestPacketHandler(void *packet, int size, void *data)
+{
+	TRACE("TestPacketHandler");
+	return 1;
+}
+
+int __cdecl PacketUnknownTest(int a1, int a2, int a3)
+{
+	TRACE("PacketUnknownTest");
+	return 1;
+}
+
 
 DWORD packet_table_offset;
 DWORD push_packet_table;
@@ -1309,6 +1337,7 @@ void __stdcall clear_packet_table_hook(NetworkPacket *old_packet_table) {
 
 	// test packets
 	CustomNetwork::Register_Packet(packet_table, CustomNetwork::leave_session_new_test, "leave-session", 8, 8, leaveSessionPacketGenerator, leaveSessionPacketHandler, PacketUnknownFunctionHandler);
+	CustomNetwork::Register_Packet(packet_table, CustomNetwork::this_is_a_test, "this_is_a_test", 0, 0, TestPacketGenerator, TestPacketHandler, PacketUnknownTest);
 }
 
 void H2MOD::ApplyHooks() {
