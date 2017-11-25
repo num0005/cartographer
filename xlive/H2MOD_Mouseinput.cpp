@@ -43,7 +43,7 @@ __declspec(naked) void CC_Fug(void)
 	}
 }
 
-void Mouseinput::Initialize()
+void RawInput::Initialize()
 {
 	base = h2mod->GetBase();
 	ms = (DIMOUSESTATE*)(base + 0x47A570);

@@ -3,15 +3,18 @@
 #include "xliveless.h"
 #include "H2MOD.h"
 
-bool H2X_Disable = false;
-
-void H2X::H2X_Initialize()
+DWORD getFloatOffset()
 {
 	int offset = 0x47CD54;
 	if (h2mod->Server)
 		offset = 0x4A29BC;
+	return *(DWORD*)((char*)h2mod->GetBase() + offset);
+}
+
+void H2X::Initialize()
+{
 	TRACE_GAME("[h2mod] H2X is being run on client game");
-	DWORD FloatOffsets = *(DWORD*)((char*)h2mod->GetBase() + offset);
+	DWORD FloatOffsets = getFloatOffset();
 
 	*(float*)(FloatOffsets + 0xA49A7C) = 0.295f; /*H2X BR fire recovery time*/
 	*(float*)(FloatOffsets + 0xB7A330) = 0.535f; /*H2X Sniper Rifle fire recovery time*/
@@ -23,13 +26,10 @@ void H2X::H2X_Initialize()
 	*(float*)(FloatOffsets + 0xA03250) = 0.11f; /*H2X Plasma Pistol fire recovery time*/
 }
 
-void H2X::H2X_Deinitialize()
+void H2X::Deinitialize()
 {
-	int offset = 0x47CD54;
-	if (h2mod->Server)
-		offset = 0x4A29BC;
 	TRACE_GAME("[h2mod] H2X is not running on client game");
-	DWORD FloatOffsets = *(DWORD*)((char*)h2mod->GetBase() + offset);
+	DWORD FloatOffsets = getFloatOffset();
 	
 	*(float*)(FloatOffsets + 0xA49A7C) = 0.26f; /*H2V BR fire recovery time*/
 	*(float*)(FloatOffsets + 0xB7A330) = 0.5f; /*H2V Sniper Rifle fire recovery time*/

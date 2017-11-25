@@ -1,7 +1,7 @@
 #pragma once
 
-class Mouseinput
+class RawInput
 {
 public:
-	void Initialize();
+	void static Initialize();
 };
