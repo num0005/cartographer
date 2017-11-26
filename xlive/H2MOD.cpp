@@ -56,6 +56,7 @@ HMODULE base;
 extern int MasterState;
 
 const char* customLobbyMessage = NULL;
+extern const std::unordered_map <std::string, std::string> singleplayer_maps;
 
 /**
 * Sets the custom lobby message
@@ -842,8 +843,12 @@ bool __cdecl player_remove_packet_handler(void *packet, int size, void *data)
 }
 */
 
+bool in_coop = false;
+DWORD* Coop_spawns;
+
 int __cdecl OnMapLoad(int a1)
 {
+	in_coop = false;
 	overrideUnicodeMessage = false;
 
 	isLobby = true;
@@ -879,6 +884,17 @@ int __cdecl OnMapLoad(int a1)
 	TRACE_GAME("[h2mod] OnMapLoad engine mode %d, variant name %ws", *GameEngine, variant_name);
 
 	if (*GameEngine == 2) {
+		std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_to_string;
+		std::wstring map_name_wide = (wchar_t*)(h2mod->GetBase() + 0x46DAE8);
+		Coop_spawns = (DWORD*)(GameGlobals + 0x2A4);
+		map_name_wide = map_name_wide.substr(map_name_wide.find_last_of(L"\\") + 1);
+
+		std::string map_name = wstring_to_string.to_bytes(map_name_wide);
+		if (singleplayer_maps.find(map_name) != singleplayer_maps.end()) {
+			in_coop = true;
+			*GameEngine = 1;
+			return ret;
+		}
 		if (wcsstr(variant_name, L"zombies") > 0 || wcsstr(variant_name, L"Zombies") > 0 || wcsstr(variant_name, L"Infection") > 0 || wcsstr(variant_name, L"infection") > 0)
 		{
 			TRACE_GAME("[h2mod] Zombies Turned on!");
@@ -1006,6 +1022,7 @@ bool __cdecl OnPlayerSpawn(int a1)
 	//TRACE_GAME("OnPlayerSpawn(a1: %08X)", a1);
 
 	int PlayerIndex = a1 & 0x000FFFF;
+
 	int ret = pspawn_player(a1);
 
 	if (b_Infection)
@@ -1625,6 +1642,12 @@ DWORD WINAPI Thread1(LPVOID lParam)
 VOID CALLBACK UpdateDiscordStateTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
 {
 	update_player_count();
+	if (in_coop) {
+		int player_count_a = *reinterpret_cast<BYTE*>(h2mod->GetBase() + 0x506974);
+		int player_count_b = *reinterpret_cast<BYTE*>(h2mod->GetBase() + 0x50E4FC);
+		if ((player_count_a + player_count_b) > 1)
+			*Coop_spawns = 1;
+	}
 }
 
 void H2MOD::Initialize()

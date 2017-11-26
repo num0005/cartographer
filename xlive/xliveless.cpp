@@ -2735,7 +2735,7 @@ void WINAPI XUserSetProperty(DWORD dwUserIndex, DWORD dwPropertyId, DWORD cbValu
     return;
 }
 
-static const std::unordered_map <std::string, std::string> singleplayer_maps{
+extern const std::unordered_map <std::string, std::string> singleplayer_maps {
 	{ "00a_introduction", "The Heretic" },
 	{ "01a_tutorial", "The Armory" },
 	{ "01b_spacestation", "Cairo Station" },
@@ -2753,7 +2753,7 @@ static const std::unordered_map <std::string, std::string> singleplayer_maps{
 	{ "08b_deltacontrol", "The Great Journey" }
 };
 
-static const std::unordered_map <int, std::pair<std::string, std::string>> campaign_difficulty_list = {
+static const std::unordered_map <int, std::pair<std::string, std::string>> campaign_difficulty_list {
 	{ 0,{ "campaign_easy", "Easy" } },
 	{ 1,{ "campaign_normal", "Normal" } },
 	{ 2,{ "campaign_medium", "Heroic" } },
@@ -2813,7 +2813,8 @@ enum class ContextPresence {
 	singleplayer,
 	lobby,
 	results,
-	public_game = 7,
+	live_game,
+	public_game,
 	invite_only_game,
 	closed_game
 };
@@ -2867,6 +2868,19 @@ DWORD WINAPI XUserSetContext(DWORD dwUserIndex, DWORD dwContextId, DWORD dwConte
 				diff.second
 			);
 			break;
+		}
+		case ContextPresence::live_game:
+		{
+			int game_engine_type = *reinterpret_cast<BYTE*>(GameEngineGlobals + 0xC54);
+
+			DiscordInterface::SetGameState(
+				map_name,
+				"Pretending GFWL is not discontinued",
+				getEnglishMapName(),
+				gamemode_id_to_string(game_engine_type),
+				getVariantName()
+			);
+			update_player_count();
 		}
 		case ContextPresence::public_game:
 		case ContextPresence::invite_only_game:
