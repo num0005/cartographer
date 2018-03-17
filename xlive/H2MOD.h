@@ -1,6 +1,6 @@
 #pragma once
-
 #include "Hook.h"
+#include "LuaApiInterface.h"
 #include <unordered_map>
 #include <set>
 #include <mutex>
@@ -95,6 +95,7 @@ class NetworkPlayer
 class H2MOD
 {
 public:
+		H2MOD();
 		void Initialize();
 		void Deinitialize();
 		void IndicatorVisibility(bool toggle);
@@ -138,6 +139,8 @@ public:
 
 		std::set<int> hookedObjectDefs;
 		bool isChatBoxCommand = false;
+
+		LuaApiInterface lua_api;
 
 private:
 		DWORD Base;

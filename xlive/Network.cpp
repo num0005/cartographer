@@ -296,7 +296,7 @@ int __stdcall write_uint(DWORD *thisptr, char* valuestr, unsigned int value, sig
 
 
 	if (memcmp(valuestr, "type", strlen(valuestr)))
-		TRACE_GAME_N("bitstream::write_uint - string: %s, value: %i", valuestr, value);
+		TRACE_GAME("bitstream::write_uint - string: %s, value: %i", valuestr, value);
 	else
 		TRACE_GAME_NETWORK("bitstream::write_uint::packet - %s", Network::GetPacketType(value));
 
@@ -306,14 +306,14 @@ int __stdcall write_uint(DWORD *thisptr, char* valuestr, unsigned int value, sig
 
 int __stdcall write_address(DWORD *thisptr, char* valuestr, unsigned int value)
 {
-	TRACE_GAME_N("bitstream::write_uint - string: %s, value: %08X", valuestr, value);
+	TRACE_GAME("bitstream::write_uint - string: %s, value: %08X", valuestr, value);
 
 	return pwrite_address(thisptr, valuestr, value);
 }
 /**
 int __stdcall read_block(DWORD* thisptr, char* valuestr, char* blockptr, signed int bitsize)
 {
-TRACE_GAME_N("bitstream::read_block - string: %s, ptr: %08X, bitsize: %i", valuestr, blockptr, bitsize);
+TRACE_GAME("bitstream::read_block - string: %s, ptr: %08X, bitsize: %i", valuestr, blockptr, bitsize);
 
 int ret = pRead_block(thisptr, valuestr, blockptr, bitsize);
 
@@ -329,7 +329,7 @@ for (int i = 0; i < bytesize; i++)
 _snprintf(&blockhex[i * 2], 2, "%02X", blockptr[i]);
 }
 
-TRACE_GAME_N("bitstream::read_block - hex: %s", blockhex);
+TRACE_GAME("bitstream::read_block - hex: %s", blockhex);
 
 blockhex[sizeof(blockhex)] = { 0 };
 
@@ -352,7 +352,7 @@ DWORD subfunc = 0xCDC35;
 void read_uint_display()
 {
 	if (memcmp(read_uint_string, "type", strlen(read_uint_string)))
-		TRACE_GAME_N("bitstream::read_uint - string: %s value: %i", read_uint_string, read_uint_value);
+		TRACE_GAME("bitstream::read_uint - string: %s value: %i", read_uint_string, read_uint_value);
 	else
 		TRACE_GAME_NETWORK("bitstream::read_uint::packet - %s", Network::GetPacketType(read_uint_value));
 

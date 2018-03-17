@@ -2799,9 +2799,9 @@ std::string getEnglishMapName()
 
 std::string getVariantName()
 {
-	std::wstring variant = reinterpret_cast<wchar_t*>(h2mod->GetBase() + 0x97777C);
-	variant = variant.substr(0, variant.find_last_not_of(L"\xE008\t\n ") + 1);
-	return wstring_to_string.to_bytes(variant);
+	std::wstring variant_name_wide = (wchar_t*)(((char*)h2mod->GetBase()) + ((h2mod->Server) ? 0x534A18 : 0x97777C));
+	variant_name_wide = variant_name_wide.substr(0, variant_name_wide.find_last_not_of(L"\xE008\t\n ") + 1);
+	return wstring_to_string.to_bytes(variant_name_wide);
 }
 
 std::string gamemode_id_to_string(int id)
@@ -2948,7 +2948,7 @@ DWORD WINAPI XUserWriteAchievements (DWORD count, PXUSER_ACHIEVEMENT pAchievemen
 		{
 			achievementList[ pAchievement->dwAchievementId ] = 1;
 
-			TRACE2("Achievement %d unlocked by Player %d", pAchievement->dwAchievementId, pAchievement->dwUserIndex);
+			TRACE("Achievement %d unlocked by Player %d", pAchievement->dwAchievementId, pAchievement->dwUserIndex);
 			pAchievement++;
 
 			count--;

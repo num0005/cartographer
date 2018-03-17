@@ -49,4 +49,3 @@ void H2X::Deinitialize()
 	*(float*)(FloatOffsets + 0xAAE544) = 9.0f; /*H2V Plasma Rifle rounds per second max*/
 	*(float*)(FloatOffsets + 0xD0F960) = 11.0f; /*H2V Brute Plasma Rifle rounds per second max*/
 }
-	

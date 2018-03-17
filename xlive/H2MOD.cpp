@@ -21,8 +21,8 @@
 #include <Mmsystem.h>
 #include "DiscordInterface.h"
 #include "H2Config.h"
+#include "LuaApiInterface.h"
 #include "H2Tweaks.h"
-
 
 
 H2MOD *h2mod = new H2MOD();
@@ -142,13 +142,13 @@ typedef int(__stdcall *calls_session_boot)(void*, int, char);
 calls_session_boot calls_session_boot_method;
 
 int __stdcall calls_session_boot_sub_1cce9b(void* thisx, int a2, char a3) {
-	TRACE_GAME_N("session boot - this=%d,a2=%d,a3=%d", thisx, a2, a3);
+	TRACE_GAME("session boot - this=%d,a2=%d,a3=%d", thisx, a2, a3);
 	return calls_session_boot_method(thisx, a2, a3);
 }
 
 void H2MOD::kick_player(int peerIndex) {
 	DWORD* ptr = (DWORD*)(((char*)h2mod->GetBase()) + 0x420FE8);
-	TRACE_GAME_N("about to kick player index=%d", peerIndex);
+	TRACE_GAME("about to kick player index=%d", peerIndex);
 	calls_session_boot_method((DWORD*)(*ptr), peerIndex, (char)0x01);
 }
 
@@ -771,6 +771,10 @@ bool __cdecl player_remove_packet_handler(void *packet, int size, void *data)
 
 int __cdecl OnMapLoad(int a1)
 {
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_to_string;
+	std::wstring map_name_wide = (wchar_t*)(h2mod->GetBase() + 0x46DAE8);
+	std::string map_name_narrow = wstring_to_string.to_bytes(map_name_wide);
+	h2mod->lua_api.on_map_load(map_name_narrow);
 	overrideUnicodeMessage = false;
 
 	isLobby = true;
@@ -968,7 +972,7 @@ void __stdcall join_game(void* thisptr, int a2, int a3, int a4, int a5, XNADDR* 
 
 	memcpy(&join_game_xn, host_xn, sizeof(XNADDR));
 
-	trace(L"join_game host_xn->ina.s_addr: %08X ", host_xn->ina.s_addr);
+	TRACE("join_game host_xn->ina.s_addr: %08X ", host_xn->ina.s_addr);
 
 	sockaddr_in SendStruct;
 
@@ -1578,6 +1582,11 @@ VOID CALLBACK UpdateDiscordStateTimer(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DW
 	update_player_count();
 }
 
+H2MOD::H2MOD()
+{
+
+}
+
 void H2MOD::Initialize()
 {
 	//HANDLE hThread = CreateThread(NULL, 0, Thread1, NULL, 0, NULL);
@@ -1622,7 +1631,7 @@ void H2MOD::Initialize()
 
 	//Network::Initialize();
 	h2mod->ApplyHooks();
-
+	lua_api.LoadScripts();
 	if (!h2mod->Server)
 	{
 		if (H2Config_discord_enable) {

@@ -64,7 +64,7 @@
     <OutDir>$(SolutionDir)Halo2\</OutDir>
     <IntDir>.\Release\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Program Files (x86)\Microsoft Visual Studio\Shared\14.0\VC\include;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;.\;..\protobuf-2.6.1;..\Directx SDK\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program Files (x86)\Microsoft Visual Studio\Shared\14.0\VC\include;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include;.\;..\protobuf-2.6.1;..\Directx SDK\include;.\LuaJIT;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio\Shared\14.0\VC\lib;C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Lib;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86;.\libs;..\Directx SDK\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -123,7 +123,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>ws2_32.lib;odbc32.lib;odbccp32.lib;libprotobuf_release.lib;d3d9.lib;d3dx9.lib;discord-rpc.lib;Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;odbc32.lib;odbccp32.lib;libprotobuf_release.lib;d3d9.lib;d3dx9.lib;discord-rpc.lib;Winmm.lib;$(SolutionDir)xlive\LuaJIT\lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>.\xlive.def</ModuleDefinitionFile>
@@ -150,7 +150,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;CURL_STATICLIB;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;_USRDLL;xliveless_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;CURL_STATICLIB;_CRT_SECURE_NO_WARNINGS;DEBUG;_DEBUG;_WINDOWS;_USRDLL;xliveless_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -172,7 +172,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;ws2_32.lib;libprotobuf.lib;d3d9.lib;d3dx9.lib;Winmm.lib;discord-rpc-debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;ws2_32.lib;libprotobuf.lib;d3d9.lib;d3dx9.lib;Winmm.lib;discord-rpc-debug.lib;$(SolutionDir)xlive\LuaJIT\lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ModuleDefinitionFile>.\xlive.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -275,6 +275,7 @@
     <ClCompile Include="H2Startup.cpp" />
     <ClCompile Include="H2Tweaks.cpp" />
     <ClCompile Include="Hook.cpp" />
+    <ClCompile Include="LuaApiInterface.cpp" />
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="packet.pb.cc" />
     <ClCompile Include="H2MOD_Infection.cpp" />
@@ -342,6 +343,7 @@
     <ClInclude Include="H2Startup.h" />
     <ClInclude Include="H2Tweaks.h" />
     <ClInclude Include="Hook.h" />
+    <ClInclude Include="LuaApiInterface.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="packet.pb.h" />
     <ClInclude Include="ReadIniArguments.h" />

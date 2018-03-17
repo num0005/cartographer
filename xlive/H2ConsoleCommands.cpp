@@ -133,7 +133,7 @@ void ConsoleCommands::spawn(unsigned int object_datum, int count, float x, float
 			delete[] nObject;
 		}
 		catch (...) {
-			TRACE_GAME_N("Error running spawn command");
+			TRACE_GAME("Error running spawn command");
 		}
 	}
 }

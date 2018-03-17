@@ -1,5 +1,6 @@
 #include "CUser.h"
 #include "stdafx.h"
+#include "xliveless.h"
 #include "packet.pb.h"
 #include <time.h>
 #include <sstream>

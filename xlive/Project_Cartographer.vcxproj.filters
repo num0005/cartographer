@@ -82,6 +82,9 @@
     <Filter Include="Source Files\Blam\Enums\Objects">
       <UniqueIdentifier>{b6472f0a-f04e-45d0-adb0-c2835f526b6c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\LuaAPI">
+      <UniqueIdentifier>{696b35a3-9a02-4fc1-9148-3a430e6a2d18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -188,6 +191,9 @@
     </ClCompile>
     <ClCompile Include="H2MOD_Network.cpp">
       <Filter>Source Files\H2MOD\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LuaApiInterface.cpp">
+      <Filter>Source Files\LuaAPI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -391,6 +397,9 @@
     </ClInclude>
     <ClInclude Include="Blam\Engine\Game\HaloScript.h">
       <Filter>Source Files\Blam\Engine\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaApiInterface.h">
+      <Filter>Source Files\LuaAPI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

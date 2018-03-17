@@ -77,7 +77,7 @@ void __cdecl membershipUpdateWrite(void* a1, int a2, int a3) {
 	char* mapNameToWrite = (char*)(a3 + (MEMBERSHIP_PACKET_SIZE - lengthOfMapName));
 	memcpy(mapNameToWrite, mapFileName.c_str(), lengthOfMapName);
 	getDataEncodeStringMethod()(a1, (int)mapName.c_str(), (int)mapNameToWrite, lengthOfMapName);
-	TRACE_GAME_N("[H2MOD-network] mapNameWritten=%s", mapNameToWrite);
+	TRACE_GAME("[H2MOD-network] mapNameWritten=%s", mapNameToWrite);
 }
 
 // This variable holds the return address, it must be global!
@@ -89,7 +89,7 @@ void memberUpdateReadCave() {
 	char* mapNameToRead = (char*)(targetData + (MEMBERSHIP_PACKET_SIZE - lengthOfMapName));
 	getDataDecodeStringMethod()((void*)packet, (int)mapName.c_str(), (int)mapNameToRead, lengthOfMapName);
 	mapManager->setClientMapFilename(std::string(mapNameToRead));
-	TRACE_GAME_N("[H2MOD-network] mapNameRead=%s", mapNameToRead);
+	TRACE_GAME("[H2MOD-network] mapNameRead=%s", mapNameToRead);
 	TRACE_GAME("[h2mod-network] memberupdate code cave");
 }
 
@@ -349,7 +349,7 @@ valid_packet_type getIsValidPacketMethod() {
 int __cdecl request_write(void* a1, int a2, int a3) {
 	getDataEncodeIntegerMethod()(a1, (int)"identifier", *(DWORD *)a3, 32);
 	int result = getDataEncodeIntegerMethod()(a1, (int)"flags", *(DWORD *)(a3 + 4), 8);
-	TRACE_GAME_N("[H2MOD-network] connection request write, identifier=%d, flags=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4));
+	TRACE_GAME("[H2MOD-network] connection request write, identifier=%d, flags=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4));
 	return result;
 }
 
@@ -369,7 +369,7 @@ bool __cdecl refuse_read(int a1, int a2, int a3) {
 	*(DWORD *)a3 = getDataDecodeIntegerMethod()(a1, (int)"remote-identifier", 32);
 	*(DWORD *)(a3 + 4) = getDataDecodeIntegerMethod()(a1, (int)"reason", 3);
 	bool isValid = getIsValidPacketMethod()(a1) == 0;
-	TRACE_GAME_N("[H2MOD-network] connection refuse read, remote-identifier=%d, reason=%d, isValid=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), isValid);
+	TRACE_GAME("[H2MOD-network] connection refuse read, remote-identifier=%d, reason=%d, isValid=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), isValid);
 	return isValid;
 }
 
@@ -378,7 +378,7 @@ int __cdecl establish_write(void* a1, int a2, int a3) {
 
 	getDataEncodeIntegerMethod()(a1, (int)(h2mod->GetBase() + 0x3C843C), *(DWORD *)a3, 32);
 	int result = getDataEncodeIntegerMethod()(a1, (int)(h2mod->GetBase() + 0x3BDC64), *(DWORD *)(a3 + 4), 32);
-	TRACE_GAME_N("[H2MOD-network] connection establish write, remote-identifier=%d, identifier=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4));
+	TRACE_GAME("[H2MOD-network] connection establish write, remote-identifier=%d, identifier=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4));
 	return result;
 }
 
@@ -386,7 +386,7 @@ bool __cdecl establish_read(int a1, int a2, int a3) {
 	*(DWORD *)a3 = getDataDecodeIntegerMethod()(a1, (int)"remote-identifier", 32);
 	*(DWORD *)(a3 + 4) = getDataDecodeIntegerMethod()(a1, (int)"identifier", 32);
 	bool isValid = getIsValidPacketMethod()(a1) == 0;
-	TRACE_GAME_N("[H2MOD-network] connection establish read, remote-identifier=%d, identifier=%d, isValid=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), isValid);
+	TRACE_GAME("[H2MOD-network] connection establish read, remote-identifier=%d, identifier=%d, isValid=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), isValid);
 	return isValid;
 }
 
@@ -394,7 +394,7 @@ int __cdecl closed_write(void* a1, int a2, int a3) {
 	getDataEncodeIntegerMethod()(a1, (int)"remote-identifier", *(DWORD *)a3, 32);
 	getDataEncodeIntegerMethod()(a1, (int)"identifier", *(DWORD *)(a3 + 4), 32);
 	int result = getDataEncodeIntegerMethod()(a1, (int)"closure-reason", *(DWORD *)(a3 + 8), 5);
-	TRACE_GAME_N("[H2MOD-network] connection closed write, remote-identifier=%d, identifier=%d, closureReason=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), *(DWORD *)(a3 + 8));
+	TRACE_GAME("[H2MOD-network] connection closed write, remote-identifier=%d, identifier=%d, closureReason=%d", *(DWORD *)a3, *(DWORD *)(a3 + 4), *(DWORD *)(a3 + 8));
 	return result;
 }
 
@@ -413,7 +413,7 @@ bool __cdecl closed_read(int a1, int a2, int a3) {
 		if (v3 >= 0 && v3 < 18)
 			result = 1;
 	}
-	TRACE_GAME_N("[H2MOD-network] connection closed read, remote-identifier=%d, reason=%d, closureReason=%d, isValid=%d, result=%d",
+	TRACE_GAME("[H2MOD-network] connection closed read, remote-identifier=%d, reason=%d, closureReason=%d, isValid=%d, result=%d",
 		*(DWORD *)a3, *(DWORD *)(a3 + 4), *(DWORD *)(a3 + 8), isValid, result);
 	return result;
 }
@@ -506,7 +506,7 @@ typedef int(__stdcall *send_packet)(void* thisx, void *a2, unsigned int type, un
 send_packet send_packet_method;
 
 int __stdcall sendPacket(void* thisx, void *a2, unsigned int type, unsigned int size, int packet_data_obj) {
-	TRACE_GAME_N("[h2mod-network] send packet type=%d, typeName=%s, size=%d", type, getTextForEnum(type), size);
+	TRACE_GAME("[h2mod-network] send packet type=%d, typeName=%s, size=%d", type, getTextForEnum(type), size);
 	return send_packet_method(thisx, a2, type, size, packet_data_obj);
 }
 
@@ -519,7 +519,7 @@ bool decodePacketTypeAndSize(void *thisx, int a2, signed int *a3, int a4) {
 	v4 = (char *)thisx;
 	*a3 = getDataDecodeIntegerMethod()(a2, (int)"type", 8);
 	*(DWORD *)a4 = getDataDecodeIntegerMethod()(a2, (int)"size", 16);
-	TRACE_GAME_N("[h2mod-network] received packet decoded type=%d, typeName=%s, size=%d", *a3, getTextForEnum(*a3), *(DWORD *)a4);
+	TRACE_GAME("[h2mod-network] received packet decoded type=%d, typeName=%s, size=%d", *a3, getTextForEnum(*a3), *(DWORD *)a4);
 	if (getIsValidPacketMethod()(a2)
 		|| (v5 = *a3, *a3 < 0)
 		|| v5 >= 49
