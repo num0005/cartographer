@@ -1144,6 +1144,29 @@ char filo_write__encrypted_data_hook(filo *file_ptr, DWORD nNumberOfBytesToWrite
 	return FiloInterface::write(file_ptr, lpBuffer, nNumberOfBytesToWrite);
 }
 
+void __cdecl hs_place_ai(unsigned int ai_ref)
+{
+	char output[0x200];
+	sprintf(output, "Ox%08x", ai_ref);
+	commands->display(std::string("[hs_place_ai] ") + output);
+
+	typedef void (__cdecl *place_ai)(unsigned int ai_ref);
+	place_ai place_ai_impl = reinterpret_cast<place_ai>(h2mod->GetBase() + 0x313527);
+	place_ai_impl(ai_ref);
+}
+
+void __cdecl hs_place_ai_sqaud_count(unsigned int ai_ref, int ai_place_member_count)
+{
+	char output[0x200];
+	sprintf(output, "Ox%08x", ai_ref);
+	commands->display(std::string("[hs_place_ai_sqaud_count] ") + output);
+
+	typedef void(__cdecl *place_ai)(unsigned int ai_ref, int ai_place_member_count);
+	place_ai place_ai_impl = reinterpret_cast<place_ai>(h2mod->GetBase() + 0x313642);
+	place_ai_impl(ai_ref, ai_place_member_count);
+}
+
+
 void H2MOD::securityPacketProcessing()
 {
 
@@ -1168,6 +1191,10 @@ void H2MOD::ApplyHooks() {
 	/* We also need added checks to see if someone is the host or not, if they're not they don't need any of this handling. */
 	if (this->Server == false) {
 		TRACE_GAME("Applying client hooks...");
+
+		PatchCall(h2mod->GetBase() + 0xECF3E, hs_place_ai);
+
+		PatchCall(h2mod->GetBase() + 0xECF74, hs_place_ai_sqaud_count);
 		/* These hooks are only built for the client, don't enable them on the server! */
 
 #pragma region H2V Hooks
@@ -1256,7 +1283,7 @@ void H2MOD::ApplyHooks() {
 
 		//FIXME: This causes SP to crash after cutscenes.
 		//allow AI in MP
-		//NopFill(h2mod->GetBase() + 0x30E67C, 0x14);
+		NopFill(h2mod->GetBase() + 0x30E67C, 0x14);
 
 	}
 #pragma endregion
