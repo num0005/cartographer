@@ -2,6 +2,10 @@
 #define H2MOD_NETWORK
 #include <queue>
 #include <h2mod.pb.h>
+#include "Util/hash.h"
+
+#define run_async(expression) \
+	std::thread{ [=] { expression; } }.detach();
 
 static const char* packet_type_strings[] = {
 	"ping",
@@ -118,20 +122,44 @@ public:
 	//command sent from server
 	char* networkCommand;
 
+	std::mutex network_send;
+
 	inline void send_h2mod_packet(const H2ModPacket &packet)
 	{
-		char* SendBuf = new char[packet.ByteSize()];
-		packet.SerializeToArray(SendBuf, packet.ByteSize());
-		this->networkCommand = SendBuf;
+		std::unique_lock<std::mutex> network_lock(network_send);
+		encode_packet(packet);
 
 		sendCustomPacketToAllPlayers();
 
-		this->networkCommand = nullptr;
-		delete[] SendBuf;
+		delete[] networkCommand;
+		networkCommand = nullptr;
+	}
+
+	inline void send_h2mod_packet_player(int peerIndex, const H2ModPacket &packet)
+	{
+		std::unique_lock<std::mutex> network_lock(network_send);
+		encode_packet(packet);
+
+		sendCustomPacket(peerIndex);
+
+		delete[] networkCommand;
+		networkCommand = nullptr;
 	}
 
 	//command queue on the client
 	std::deque<std::string> queuedNetworkCommands;
+private:
+	inline void encode_packet(const H2ModPacket &packet)
+	{
+		size_t message_len = packet.ByteSize();
+		char* SendBuf = new char[message_len + sizeof(__int32)];
+		packet.SerializeToArray(&SendBuf[sizeof(__int32) / sizeof(char)], message_len);
+		this->networkCommand = SendBuf;
+
+#if _DEBUG
+		TRACE_FUNC_N("data: %s", hashes::as_hex_string((BYTE*)SendBuf, packet.ByteSize()).c_str());
+#endif
+	}
 };
 
 #endif 

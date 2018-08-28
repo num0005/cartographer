@@ -1,11 +1,14 @@
 #include "Globals.h"
 #include <CUser.h>
+#include "MapChecksumSync.h"
 
 //original = 0x3DA8
 #define MEMBERSHIP_PACKET_SIZE 0x3DA8
 #define MEMBERSHIP_PACKET_SIZE_RAW_BYTES 0xA8, 0x3D
 //original = 0x194
-#define CHAT_PACKET_SIZE 0x2B5
+#define CHAT_PACKET_ORG_SIZE 0x194
+#define CHAT_PACKET_EXTEND_SIZE 0x2000
+#define CHAT_PACKET_SIZE CHAT_PACKET_ORG_SIZE + CHAT_PACKET_EXTEND_SIZE
 #define CHAT_PACKET_SIZE_RAW_BYTES 0xB5, 0x02
 
 const char* getTextForEnum(int enumVal) {
@@ -25,9 +28,9 @@ data_decode_address getDataDecodeAddressMethod() {
 }
 
 //0xD1F95
-typedef int(__thiscall *data_decode_id)(int thisx, int a1, int a2, int a3);
-data_decode_id getDataDecodeId() {
-	return (data_decode_id)(h2mod->GetBase() + (h2mod->Server ? 0xCE54F : 0xD1F95));
+typedef int(__thiscall *data_decode_data)(int thisx, char* name, void *data, size_t len);
+data_decode_data getDataDecodeBytes() {
+	return (data_decode_data)(h2mod->GetBase() + (h2mod->Server ? 0xCE54F : 0xD1F95));
 }
 
 //0xD1EE5
@@ -54,8 +57,8 @@ data_encode_string getDataEncodeStringMethod() {
 }
 
 //0xD18CD
-typedef int(__thiscall *data_encode_id)(void* thisx, int a1, int a2, int a3);
-data_encode_id getDataEncodeIdMethod() {
+typedef int(__thiscall *data_encode_id)(void* thisx, char *name, void *data, size_t size);
+data_encode_id getDataEncodeBytesMethod() {
 	return (data_encode_id)(h2mod->GetBase() + (h2mod->Server ? 0xCDE87 : 0xD18CD));
 }
 
@@ -508,13 +511,13 @@ int __cdecl serializeChatPacket(void* a1, int a2, int a3) {
 	unsigned int v3; // ebx@3
 	int v4; // ebp@4
 
-	getDataEncodeIdMethod()(a1, (int)"session-id", a3, 64);
+	getDataEncodeBytesMethod()(a1, "session-id", (void*)a3, 64);
 	getDataEncodeIntegerMethod()(a1, (int)"routed-players", *(DWORD *)(a3 + 8), 32);
 	getDataEncodeIntegerMethod()(a1, (int)"metadata", *(DWORD *)(a3 + 12), 8);
 	//*(BYTE *)(a3 + 16) = gameManager->isHost();
 	getDataEncodeBooleanMethod()((int)a1, (int)"source-is-server", *(BYTE *)(a3 + 16));
 	if (!*(BYTE *)(a3 + 16))
-		getDataEncodeIdMethod()(a1, (int)"source-player", a3 + 17, 64);
+		getDataEncodeBytesMethod()(a1, "source-player", reinterpret_cast<void*>(a3 + 17), 64);
 	getDataEncodeIntegerMethod()(a1, (int)"destination-player-count", *(DWORD *)(a3 + 156), 8);
 	v3 = 0;
 	if (*(DWORD *)(a3 + 156))
@@ -522,19 +525,25 @@ int __cdecl serializeChatPacket(void* a1, int a2, int a3) {
 		v4 = a3 + 25;
 		do
 		{
-			getDataEncodeIdMethod()(a1, (int)"destination-player", v4, 64);
+			getDataEncodeBytesMethod()(a1, "destination-player", (void*)v4, 64);
 			++v3;
 			v4 += 8;
 		} while (v3 < *(DWORD *)(a3 + 156));
 	}
 	int result = getDataEncodeStringMethod()(a1, (int)"text", a3 + 160, 121);
 
+
 	if (network->networkCommand != NULL && network->networkCommand[0] != '\0') {
-		char* commandToWrite = (char*)(a3 + (CHAT_PACKET_SIZE - 121));
-		memset(commandToWrite, 0, 121);
-		memcpy(commandToWrite, network->networkCommand, strlen(network->networkCommand));
+		INT32 packet_size = *reinterpret_cast<INT32*>(network->networkCommand);
+		if (LOG_CHECK(packet_size <= CHAT_PACKET_EXTEND_SIZE))
+		{
+			TRACE_FUNC("Can't send data larger than chat extend size. data_size=%d, extend_size=%d", packet_size, CHAT_PACKET_EXTEND_SIZE);
+		}
+		char* commandToWrite = (char*)(a3 + (CHAT_PACKET_ORG_SIZE));
+		memset(commandToWrite, 0, CHAT_PACKET_EXTEND_SIZE);
+		memcpy(commandToWrite, network->networkCommand, packet_size);
 		//TODO: if text is precense, don't send over the command, as this call stack is from someone sending text
-		result = getDataEncodeStringMethod()(a1, (int)"command", (int)commandToWrite, 121);
+		result = getDataEncodeBytesMethod()(a1, "command", commandToWrite, CHAT_PACKET_EXTEND_SIZE);
 	}
 
 	return result;
@@ -549,13 +558,14 @@ void deserializeChatPacketCave() {
 	BYTE isServer = *(BYTE*)(originalESIRegisterAddr + 0x10);
 	wchar_t* text = (wchar_t*)(targetData2);
 
-	char* command = (char*)(targetData2 + (CHAT_PACKET_SIZE - 121));
-	getDataDecodeStringMethod()((void*)packet2, (int)"command", (int)command, 121);
+	char* command = (char*)(targetData2 + (CHAT_PACKET_ORG_SIZE));
+	getDataDecodeBytes()(packet2, "command", command, CHAT_PACKET_EXTEND_SIZE);
 	TRACE_GAME_N("[h2mod-network] chat packet deserialize code cave, commandText=%s", command);
 	TRACE_GAME("[h2mod-network] chat packet deserialize code cave, isFromServer=%d, text=%s", isServer, text);
 
 	if (command != NULL && command[0] != '\0') {
-		network->queuedNetworkCommands.push_front(command);
+		INT32 len = *reinterpret_cast<INT32*>(command);
+		network->queuedNetworkCommands.push_front(std::string(command, len));
 	}
 }
 
@@ -598,6 +608,8 @@ void deserializePlayerAddCave() {
 	mapManager->sendMapInfoPacket();
 	//inform new players of the current advanced lobby settings
 	advLobbySettings->sendLobbySettingsPacket();
+	// send sever map checksums to client
+	MapChecksumSync::SendState();
 }
 
 DWORD retAddr4 = 0;
@@ -747,6 +759,8 @@ serialize_membership_packet serialize_membership_packet_method;
 int __cdecl serializeMembershipPacket(void* a1, int a2, int a3) {
 	mapManager->sendMapInfoPacket();
 	advLobbySettings->sendLobbySettingsPacket();
+	// send sever map checksums to client
+	MapChecksumSync::SendState();
 	return serialize_membership_packet_method(a1, a2, a3);
 }
 
@@ -756,6 +770,8 @@ serialize_parameters_update_packet serialize_parameters_update_packet_method;
 int __cdecl serializeParametersUpdatePacket(void* a1, int a2, int a3) {
 	mapManager->sendMapInfoPacket();
 	advLobbySettings->sendLobbySettingsPacket();
+	// send sever map checksums to client
+	MapChecksumSync::SendState();
 	return serialize_parameters_update_packet_method(a1, a2, a3);
 }
 
@@ -820,9 +836,8 @@ void CustomNetwork::applyNetworkHooks() {
 	register_chat_packets_method = (register_chat_packets)DetourFunc((BYTE*)h2mod->GetBase() + registerChatPacketsOffset, (BYTE*)registerChatPackets, 6);
 	VirtualProtect(register_chat_packets_method, 4, PAGE_EXECUTE_READWRITE, &dwBack);
 
-	BYTE bytes2[5] = { 0x68, CHAT_PACKET_SIZE_RAW_BYTES, 0x00, 0x00 };
-	patchBYTEs((BYTE*)h2mod->GetBase() + sendChatPacketOffset, bytes2, 5);
-	patchBYTEs((BYTE*)h2mod->GetBase() + sendChatPacketOffset2, bytes2, 5);
+	WriteValue<DWORD>(h2mod->GetBase() + sendChatPacketOffset + 1, CHAT_PACKET_SIZE);
+	WriteValue<DWORD>(h2mod->GetBase() + sendChatPacketOffset2 + 1, CHAT_PACKET_SIZE);
 
 	/////////////////////////////////////////////////////////////////////
 	//send/recv packet functions below (for troubleshooting and research)
