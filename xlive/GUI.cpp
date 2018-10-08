@@ -16,6 +16,7 @@
 #include "H2ConsoleCommands.h"
 #include "H2Config.h"
 #include <time.h>
+#include "pathfinding/RenderDebug.h"
 
 
 extern ConsoleCommands* commands;
@@ -499,6 +500,8 @@ int WINAPI XLiveRender()
 	{
 		if (pDevice->TestCooperativeLevel() == D3D_OK)
 		{
+
+			//render_debug_info_game_in_progress();
 			D3DVIEWPORT9 pViewport;
 			pDevice->GetViewport(&pViewport);
 			//pViewport

@@ -14,6 +14,7 @@
 #include <unordered_set>
 #include <codecvt>
 #include "Util/filesys.h"
+#include "pathfinding/RenderDebug.h"
 
 #define _USE_MATH_DEFINES
 #include "math.h"
@@ -352,7 +353,7 @@ bool engine_basic_init()
 	void *var_c004ae8e0 = GetAddress(0x004ae8e0);
 	game_state_initialize(var_c004ae8e0);
 
-	// modifies esi need to check what the caller sets that too
+	// modifies esi need to check what the caller sets that to
 	//char(*fn_c001a9de6)() = (char(*)())(GetAddress(0x001a9de6));
 	//char result_c001a9de6 = fn_c001a9de6();
 	if (!LOG_CHECK(rasterizer_initialize()))
@@ -962,6 +963,7 @@ void InitH2Tweaks() {
 
 		WriteJmpTo(GetAddress(0x7E43), WinMain);
 		WriteJmpTo(GetAddress(0x39EA2), is_remote_desktop);
+		PatchCall(0x590ABF, render_debug_info_game_in_progress);
 	}	
 	WriteJmpTo(GetAddress(0x1467, 0x12E2), is_supported_build);
 	PatchCall(GetAddress(0x1E49A2, 0x1EDF0), validate_and_add_custom_map);

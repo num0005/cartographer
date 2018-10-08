@@ -289,6 +289,7 @@
     <ClCompile Include="Network.cpp" />
     <ClCompile Include="packet.pb.cc" />
     <ClCompile Include="H2MOD_Infection.cpp" />
+    <ClCompile Include="pathfinding\RenderDebug.cpp" />
     <ClCompile Include="TSClient.cpp" />
     <ClCompile Include="TSServer.cpp" />
     <ClCompile Include="Util\Base64.cpp" />
@@ -369,6 +370,11 @@
     <ClInclude Include="MapChecksumSync.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="packet.pb.h" />
+    <ClInclude Include="pathfinding\BasicTagTypes.h" />
+    <ClInclude Include="pathfinding\BlamBaseTypes.h" />
+    <ClInclude Include="pathfinding\Patches.h" />
+    <ClInclude Include="pathfinding\RenderDebug.h" />
+    <ClInclude Include="pathfinding\ScenarioStructureBSP.h" />
     <ClInclude Include="ReadIniArguments.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TSClient.h" />
