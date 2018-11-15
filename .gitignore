@@ -8,7 +8,6 @@ Project_Cartographer.VC.VC.opendb
 *.sdf
 *.rar
 *.dll
-*.log
 *.idb
 *.java
 !xlive/libprotobuf.lib
@@ -27,8 +26,13 @@ xliveless.aps
 xliveless.opensdf
 xliveless.v12.suo
 /.vs
-/Directx SDK/include
 /Halo2
 /xlive/Debug
 /xlive/Release
 *.opensdf
+/xlive/3rdparty/angelscript/angelscript/projects/msvc2015/Debug/*
+/xlive/3rdparty/angelscript/angelscript/projects/msvc2015/Release/*
+*/.vs/*
+xlive/3rdparty/angelscript/samples/*
+*angelscript.lib
+*angelscriptd.lib
