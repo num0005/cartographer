@@ -1,0 +1,10 @@
+version: 1.0.{build}
+configuration: Release
+build:
+  project: Project_Cartographer.sln
+  verbosity: minimal
+artifacts:
+- path: Halo2\xlive.dll
+  name: xlive.dll
+- path: xlive\Release\xlive.pdb
+  name: xlive.pdb
