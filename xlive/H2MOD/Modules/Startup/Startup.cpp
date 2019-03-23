@@ -43,6 +43,7 @@ extern CustomNetwork *network;
 
 int instanceNumber = 0;
 int H2GetInstanceId() {
+	return 2;
 	return instanceNumber;
 }
 
@@ -117,12 +118,19 @@ bool configureXinput() {
 			}
 
 			TRACE_FUNC_N("xinput path: %s", xinputName);
-			if (_access_s(xinputName, 04))
+			if (_access_s(xinputName, 02))
 			{
 				if (errno == EACCES)
 				{
-					report_error("Can't access the xinput dll");
+					report_error("Can't access the xinput dll for writing");
 					return false;
+				}
+
+				if (_access_s("xinput9_1_0.dll", 04) != 0) {
+					char xinputError[] = "ERROR! An xinput9_1_0.dll does not exist in the local game directory or is inaccessible!\nFor \'Split-screen\' play, any supported .dll is required.";
+					addDebugText(xinputError);
+					MessageBoxA(NULL, xinputError, "DLL Missing Error", MB_OK);
+					exit(EXIT_FAILURE);
 				}
 				int xinput_index = -1;
 				constexpr char xinput_md5_durazno_0_6_0_0[] = "6140ae76b26a633ce2255f6fc88fbe34";
@@ -141,70 +149,54 @@ bool configureXinput() {
 				std::string available_xinput_md5;
 				if (!hashes::calc_file_md5("xinput9_1_0.dll", available_xinput_md5))
 				{
-					report_error("Failed to hash original xinput9_1_0.dll");
+					report_error("Failed to hash original xinput9_1_0.dll, file might be missing?");
 					return false;
 				}
-				FILE* xinput_original = NULL;
-				if (xinput_original = fopen("xinput9_1_0.dll", "rb")) {
-					for (int i = 0; i < xinput_array_length; i++) {
-						if (strcmp(xinput_md5[i], available_xinput_md5.c_str()) == 0) {
-							xinput_index = i;
-							break;
-						}
+				for (int i = 0; i < xinput_array_length; i++) {
+					if (strcmp(xinput_md5[i], available_xinput_md5.c_str()) == 0) {
+						xinput_index = i;
+						break;
 					}
-					if (xinput_index < 0) {
-						char xinputError[] = "ERROR! For \'Split-screen\' play, a supported xinput9_1_0.dll is required to be installed in the local game directory!\nOr you may install a custom one manually in the xinput/p??/ folders.";
-						addDebugText(xinputError);
-						MessageBoxA(NULL, xinputError, "Incorrect DLL Error", MB_OK);
-						exit(EXIT_FAILURE);
-					}
-					FILE* xinput_patched = fopen(xinputName, "wb");
-					if (!xinput_patched) {
-						fileFail(xinput_patched);
-						report_error("Can't open xinput file for patching.");
-						exit(EXIT_FAILURE);
-					}
-					char buffer[BUFSIZ];
-					size_t n;
-					while ((n = fread(buffer, sizeof(char), sizeof(buffer), xinput_original)) > 0) {
-						if (fwrite(buffer, sizeof(char), n, xinput_patched) != n) {
-							char xinputError[255];
-							sprintf(xinputError, "ERROR! Failed to write copied file: %s", xinputName);
-							addDebugText(xinputError);
-							MessageBoxA(NULL, xinputError, "DLL Copy Error", MB_OK);
-							exit(EXIT_FAILURE);
-						}
-					}
-					fclose(xinput_original);
-					fclose(xinput_patched);
-
-					FILE* file3 = fopen(xinputName, "r+b");
-					int len_to_write = 2;
-					BYTE assmXinputDuraznoNameEdit[] = { 0x30 + (H2GetInstanceId() / 10), 0x30 + (H2GetInstanceId() % 10), 0x30 + (H2GetInstanceId() % 10) };
-					if (xinput_unicode[xinput_index]) {
-						assmXinputDuraznoNameEdit[1] = 0x00;
-						len_to_write = 3;
-					}
-					if (fseek(file3, xinput_offset[xinput_index], SEEK_SET) == 0 && fwrite(assmXinputDuraznoNameEdit, sizeof(BYTE), len_to_write, file3) == len_to_write) {
-						addDebugText("Successfully copied and patched original xinput9_1_0.dll");
-					}
-					else {
-						fclose(file3);
-						remove(xinputName);
-						char xinputError[255];
-						sprintf(xinputError, "ERROR! Failed to write hex edit to file: %s", xinputName);
-						addDebugText(xinputError);
-						MessageBoxA(NULL, xinputError, "DLL Edit Error", MB_OK);
-						exit(EXIT_FAILURE);
-					}
-					fclose(file3);
 				}
-				else {
-					char xinputError[] = "ERROR! An xinput9_1_0.dll does not exist in the local game directory!\nFor \'Split-screen\' play, any supported .dll is required.";
+				if (xinput_index < 0) {
+					char xinputError[] = "ERROR! For \'Split-screen\' play, a supported xinput9_1_0.dll is required to be installed in the local game directory!\nOr you may install a custom one manually in the xinput/p??/ folders.";
 					addDebugText(xinputError);
-					MessageBoxA(NULL, xinputError, "DLL Missing Error", MB_OK);
+					MessageBoxA(NULL, xinputError, "Incorrect DLL Error", MB_OK);
 					exit(EXIT_FAILURE);
 				}
+
+				if (!LOG_CHECK(CopyFileA("xinput9_1_0.dll", xinputName, FALSE)))
+				{
+					report_error("Failed to copy Xinput DLL for patching!");
+					return false;
+				}
+
+				FILE* xinput_patched = fopen(xinputName, "r+b");
+				if (!xinput_patched) {
+					fileFail(xinput_patched);
+					report_error("Can't open xinput file for patching.");
+					exit(EXIT_FAILURE);
+				}
+
+				int len_to_write = 2;
+				BYTE assmXinputDuraznoNameEdit[] = { 0x30 + (H2GetInstanceId() / 10), 0x30 + (H2GetInstanceId() % 10), 0x30 + (H2GetInstanceId() % 10) };
+				if (xinput_unicode[xinput_index]) {
+					assmXinputDuraznoNameEdit[1] = 0x00;
+					len_to_write = 3;
+				}
+				if (fseek(xinput_patched, xinput_offset[xinput_index], SEEK_SET) == 0 && fwrite(assmXinputDuraznoNameEdit, sizeof(BYTE), len_to_write, xinput_patched) == len_to_write) {
+					addDebugText("Successfully copied and patched original xinput9_1_0.dll");
+				}
+				else {
+					fclose(xinput_patched);
+					remove(xinputName);
+					char xinputError[255];
+					sprintf(xinputError, "ERROR! Failed to write hex edit to file: %s", xinputName);
+					addDebugText(xinputError);
+					MessageBoxA(NULL, xinputError, "DLL Edit Error", MB_OK);
+					exit(EXIT_FAILURE);
+				}
+				fclose(xinput_patched);
 			}
 		}
 	}
