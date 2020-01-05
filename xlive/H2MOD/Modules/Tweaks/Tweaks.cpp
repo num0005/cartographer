@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 #include <codecvt>
+#include <random>
 
 #include "Globals.h"
 #include "H2MOD\Modules\Config\Config.h"
@@ -271,7 +272,7 @@ enum flags : int
 	unk25, // something to do with game time?
 	unk26,
 	unk27, // network? value seems unused?
-	high_quality, // forced sound reverb ignoring CPU score and disable forcing low graphical settings (sapien)
+	high_quality, // forced sound reverb ignoring CPU score and disable forcing low graphical settings
 	unk29,
 
 	count
@@ -932,6 +933,38 @@ void fix_shader_template_nvidia(const std::string &template_name, const std::str
 	}
 }
 
+std::random_device rng;
+std::mt19937 urng(rng());
+
+void shuffle_tags(blam_tag target)
+{
+	struct tag_data
+	{
+		size_t tag_addr;
+		size_t tag_size;
+	};
+	std::vector<tag_data> tag_info;
+	for (size_t idx = 0; idx < tags::get_tag_count(); idx++)
+	{
+		auto tag = tags::get_tag_instances()[idx];
+		if (tag.type == target)
+			tag_info.push_back({ tag.data_offset, tag.size });
+	}
+	std::shuffle(tag_info.begin(), tag_info.end(), urng);
+	size_t tag_idx = 0;
+	for (size_t idx = 0; idx < tags::get_tag_count(); idx++)
+	{
+		auto tag = &tags::get_tag_instances()[idx];
+		if (tag->type == target)
+		{
+			auto new_tag_info = tag_info[tag_idx++];
+
+			tag->data_offset = new_tag_info.tag_addr;
+			tag->size = new_tag_info.tag_size;
+		}
+	}
+}
+
 void fix_shaders_nvida()
 {
 	fix_shader_template_nvidia(
@@ -945,6 +978,36 @@ void fix_shaders_nvida()
 		"shaders\\default_bitmaps\\bitmaps\\gray_50_percent",
 		1
 	);
+
+	tags::ilterator weapons('weap');
+	while (weapons.next() != DatumIndex::Null)
+	{
+		LOG_TRACE_FUNC("weap = {}", tags::get_tag_name(weapons.datum));
+		char *weapon_data = tags::get_tag<'weap', char>(weapons.datum);
+		if (weapon_data)
+			*((int*)(weapon_data + 0x12C)) |= (1 << 0x16);
+	}
+
+	// randomize projectiles
+	//shuffle_tags('proj');
+	//shuffle_tags('weap');
+	//shuffle_tags('char');
+	//shuffle_tags('vehi');
+	//shuffle_tags('vehc');
+	//shuffle_tags('ant!');
+	//shuffle_tags('styl');
+	// cure the curse of immortality
+	PatchCall(H2BaseAddr + 0xECFDF, H2BaseAddr + 0x310BE0);
+}
+
+time_t last_update = time(NULL);
+char main_loop_hook()
+{
+	if (tags::cache_file_loaded() && difftime(time(NULL), last_update) > 1) {
+		//shuffle_tags('proj');
+		last_update = time(NULL);
+	}
+	return 0;
 }
 
 void InitH2Tweaks() {
@@ -968,6 +1031,8 @@ void InitH2Tweaks() {
 		//VirtualProtect(phookServ2, 4, PAGE_EXECUTE_READWRITE, &dwBack);
 	}
 	else {//is client
+
+		PatchCall(H2BaseAddr + 0x39A92, main_loop_hook);
 
 		DWORD dwBack;
 		//Hook a function which changes the party privacy to detect if the lobby becomes open.
