@@ -146,7 +146,7 @@ extern h2log *voice_log;
 
 inline void verify_output_log(const char *expression, const char *func_name, const char* file, const int line)
 {
-	LOG_TRACE_GAME("'{0}' failed in '{1}' at '{2}:{3:d}'!", func_name, expression, file, line);
+	LOG_CRITICAL_GAME("'{0}' failed in '{1}' at '{2}:{3:d}'!", func_name, expression, file, line);
 	DWORD last_error = GetLastError();
 	if (last_error)
 	{
