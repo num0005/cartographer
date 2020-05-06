@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "CustomMaps.h"
 #include "Globals.h"
 #include "H2MOD\Modules\Config\Config.h"
 #include "H2MOD\Modules\CustomMenu\CustomMenu.h"
@@ -14,6 +15,7 @@
 #include "H2MOD\Modules\UI\XboxLiveTaskProgress.h"
 #include "..\CustomResolutions\CustomResolutions.h"
 #include "..\H2MOD\Tags\TagInterface.h"
+#include "Util\hash.h"
 
 #define _USE_MATH_DEFINES
 #include "math.h"
@@ -334,6 +336,9 @@ bool engine_basic_init()
 	init_data_checksum_info();
 	runtime_state_init();
 
+	// Load up custom maps
+	CustomMapSet::GetSingleton().scan_maps_inital();
+
 	if (H2Config_hiresfix) {
 		// HUD text size fix for higher resolutions
 		Video_HUDSizeUpdate_orig = (Video_HUDSizeUpdate_ptr)DetourFunc(h2mod->GetAddress<BYTE*>(0x264A18), (BYTE*)Video_HUDSizeUpdate_hook, 7);
@@ -564,31 +569,30 @@ void close_cache_header(HANDLE *map_handle)
 
 static std::wstring_convert<std::codecvt_utf8<wchar_t>> wstring_to_string;
 
-int __cdecl validate_and_add_custom_map(BYTE *a1)
+int __cdecl validate_and_add_custom_map(custom_map_info *data)
 {
 	tags::cache_header header;
 	HANDLE map_cache_handle;
-	wchar_t *file_name = (wchar_t*)a1 + 1216;
-	if (!open_cache_header(file_name, &header, &map_cache_handle))
+	if (!open_cache_header(data->map_file_name, &header, &map_cache_handle))
 		return false;
 	if (header.magic != 'head' || header.foot != 'foot' || header.file_size <= 0 || header.engine_gen != 8)
 	{
-		LOG_TRACE_FUNCW(L"\"{}\" has invalid header", file_name);
+		LOG_TRACE_FUNCW(L"\"{}\" has invalid header", data->map_file_name);
 		return false;
 	}
 	if (header.type > 5 || header.type < 0)
 	{
-		LOG_TRACE_FUNCW(L"\"{}\" has bad scenario type", file_name);
+		LOG_TRACE_FUNCW(L"\"{}\" has bad scenario type", data->map_file_name);
 		return false;
 	}
 	if (strnlen_s(header.name, 0x20u) >= 0x20 || strnlen_s(header.version, 0x20) >= 0x20)
 	{
-		LOG_TRACE_FUNCW(L"\"{}\" has invalid version or name string", file_name);
+		LOG_TRACE_FUNCW(L"\"{}\" has invalid version or name string", data->map_file_name);
 		return false;
 	}
 	if (header.type != scnr_type::Multiplayer && header.type != scnr_type::SinglePlayer)
 	{
-		LOG_TRACE_FUNCW(L"\"{}\" is not playable", file_name);
+		LOG_TRACE_FUNCW(L"\"{}\" is not playable", data->map_file_name);
 		return false;
 	}
 
@@ -597,20 +601,20 @@ int __cdecl validate_and_add_custom_map(BYTE *a1)
 	// without this the map is just called by it's file name
 
 	// todo move the code for loading the descriptions to our code and get rid of this
-	typedef int __cdecl validate_and_add_custom_map_interal(BYTE *a1);
+	typedef int __cdecl validate_and_add_custom_map_interal(void *a1);
 	auto validate_and_add_custom_map_interal_impl = h2mod->GetAddress<validate_and_add_custom_map_interal*>(0x4F690, 0x56890);
-	if (!validate_and_add_custom_map_interal_impl(a1))
+	if (!validate_and_add_custom_map_interal_impl(data))
 	{
-		LOG_TRACE_FUNCW(L"warning \"{}\" has bad checksums or is blacklisted, map may not work correctly", file_name);
+		LOG_TRACE_FUNCW(L"warning \"{}\" has bad checksums or is blacklisted, map may not work correctly", data->map_file_name);
 		std::wstring fallback_name;
 		if (strnlen_s(header.name, sizeof(header.name)) > 0) {
 			fallback_name = wstring_to_string.from_bytes(header.name, &header.name[sizeof(header.name) - 1]);
 		} else {
-			std::wstring full_file_name = file_name;
+			std::wstring full_file_name = data->map_file_name;
 			auto start = full_file_name.find_last_of('\\');
 			fallback_name = full_file_name.substr(start != std::wstring::npos ? start : 0, full_file_name.find_last_not_of('.'));
 		}
-		wcsncpy_s(reinterpret_cast<wchar_t*>(a1 + 32), 0x20, fallback_name.c_str(), fallback_name.size());
+		wcsncpy_s(data->map_name, fallback_name.c_str(), fallback_name.size());
 	}
 	// load the map even if some of the checks failed, will still mostly work
 	return true;
@@ -885,6 +889,110 @@ int system_get_time()
 	return (unsigned int)(PerformanceCount.QuadPart / (PerformanceFrequency.QuadPart / 1000));
 }
 
+
+// technically a __thiscall but we don't need `this`
+static bool __stdcall map_set__insert_and_update(custom_map_info *data)
+{
+	LOG_INFO_FUNCW("map name \"{}\", map path \"{}\"", data->map_name, data->map_file_name);
+	//data->write_allowed = 0;
+	//if (!obfuscated_48F9CB_impl(data->map_file_name, data))
+		//return false;
+	// todo(num0005) check if the vector already contains this map?
+	//typedef char __stdcall custom_map_info__verify_bitmap_for_menu(custom_map_info* a1);
+	//auto custom_map_info__verify_bitmap_for_menu_impl = reinterpret_cast<custom_map_info__verify_bitmap_for_menu*>(h2mod->GetAddress(0xC2069));
+	//custom_map_info__verify_bitmap_for_menu_impl(data);
+	//data->index = custom_maps.size();
+	//custom_maps.insert(*data);
+	return true;
+}
+
+// technically a __thiscall but we don't need `this`
+static bool __stdcall map_set__get_map(map_info_ui *info, custom_map_info **map_out)
+{
+	auto map = CustomMapSet::GetSingleton().get_map_by_hash(info->hash);
+	if (map) {
+		*map_out = map;
+		return true;
+	} else {
+		LOG_TRACE_FUNC("Map \"{}\" with hash {} not found, maybe reload maps?", wstring_to_string.to_bytes(info->name), hashes::as_hex_string(info->hash));
+		return false;
+	}
+}
+
+// technically a __thiscall but we don't need `this`
+static void __stdcall map_set__process_queued(int async)
+{
+	CustomMapSet::GetSingleton().update();
+}
+
+
+// technically a __thiscall but we don't need `this`
+static unsigned int __stdcall map_set__get_display_info__count(map_info_ui* info, unsigned int max_count)
+{
+	assert(!info && max_count == 0);
+	auto map_count = CustomMapSet::GetSingleton().map_count();
+	LOG_INFO_FUNC("map_count = {}", map_count);
+	return map_count;
+}
+
+static inline datum new_data_array_entry(s_datum_array *array)
+{
+	typedef int(__cdecl* datum_get_free_data_memory)(s_datum_array* datum_array);
+	auto p_datum_get_free_data_memory = h2mod->GetAddress<datum_get_free_data_memory>(0x667A0, 0x3248C);
+	return datum(p_datum_get_free_data_memory(array));
+}
+
+static int __fastcall init_ui_info(s_datum_array *custom_maps, size_t max_count)
+{
+	auto ret = h2mod->GetAddress(0x25AF9C);
+	DatumIterator<map_info_ui> maps(custom_maps);
+	auto map_info = CustomMapSet::GetSingleton().get_ui_map_info();
+	if (map_info.size() != max_count)
+		LOG_CRITICAL_FUNC("map set modified while building custom map list! old size {} new size {}", max_count, map_info.size());
+	for (size_t i = 0; i < max_count && i < map_info.size(); i++)
+	{
+		auto entry = new_data_array_entry(custom_maps);
+		if (!LOG_CHECK(!entry.IsNull()))
+			return ret; // something went badly wrong, abort before we crash
+		memcpy(maps.get_data_at_index(entry.Index), &map_info[i], sizeof(map_info_ui));
+	}
+	return ret;
+}
+
+static int return_address = 0x65AF9C;
+static __declspec(naked) void c_custom_game_custom_map_list__ctor__init_custom_info()
+{
+	__asm {
+		mov ecx, [ebp + 0x70] // this->custom_maps
+		mov edx, esi
+		call init_ui_info
+		// exit hook
+		jmp eax
+	}
+}
+
+void patch_custom_maps()
+{
+	// Patch out calls to map_set::load and map_set::queue_map_info_load on startup
+	NopFill(h2mod->GetAddress(0x39E47), 0x5 * 4);
+
+	// Hook map_set::process_queued in the main loop
+	PatchCall(h2mod->GetAddress(0x39BB7), map_set__process_queued);
+
+	// disable static constructor for custom_map_set
+	WriteValue(h2mod->GetAddress(0x39B724), nullptr);
+	// hook code used to insert new maps at run time
+	WriteJmpTo(h2mod->GetAddress(0x4CD1E), map_set__insert_and_update);
+	// used by UI code to get a map
+	WriteJmpTo(h2mod->GetAddress(0x4CF41), map_set__get_map);
+
+	PatchCall(h2mod->GetAddress(0x25AF16), map_set__get_display_info__count);
+
+	NopFill(h2mod->GetAddress(0x25AF4A), 0x11);
+
+	WriteJmpTo(h2mod->GetAddress(0x25AF64), c_custom_game_custom_map_list__ctor__init_custom_info);
+}
+
 void InitH2Tweaks() {
 	postConfig();
 
@@ -954,6 +1062,8 @@ void InitH2Tweaks() {
 
 		tags::on_map_load(fix_shaders_nvidia);
 		tags::on_map_load(c_xbox_live_task_progress_menu::ApplyPatches);
+
+		patch_custom_maps();
 	}
 
 	// Both server and client

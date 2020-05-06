@@ -50,7 +50,7 @@ bool hash_do_file_hashing(HANDLE file, HCRYPTHASH hash, DWORD flags, long long l
 	return true;
 }
 
-std::string hashes::as_hex_string(BYTE *data, size_t data_len)
+std::string hashes::as_hex_string(const uint8_t *data, size_t data_len)
 {
 	std::stringstream ss;
 	ss << std::setfill('0') << std::hex;
